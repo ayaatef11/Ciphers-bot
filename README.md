@@ -1,4 +1,4 @@
-# 🔐 Cipher Bot – Classical & Modern Encryption Toolkit
+# Cipher Bot – Classical & Modern Encryption Toolkit
 
 Cipher Bot is a browser-based JavaScript application that demonstrates the implementation of classical and modern cryptographic algorithms for educational purposes.  
 All encryption and decryption algorithms in this project are implemented **from scratch** without relying on external cryptographic libraries.
@@ -7,7 +7,7 @@ This repository is designed to help students and beginners understand how encryp
 
 ---
 
-## ✨ Supported Ciphers
+## Supported Ciphers
 
 ### Classical Ciphers
 - Caesar Cipher  
