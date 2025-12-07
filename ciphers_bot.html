@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #0f1419 0%, #1a1f2e 100%);
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+        }
+        .chat-container {
+            width: 90%; max-width: 600px; height: 90vh; background: #0e1621;
+            border-radius: 12px; display: flex; flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        .chat-header {
+            background: #1c2733; padding: 15px 20px; border-radius: 12px 12px 0 0;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .bot-avatar {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+        }
+        .bot-info h3 { color: #fff; font-size: 16px; font-weight: 500; }
+        .bot-info p { color: #8b95a5; font-size: 13px; }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .message {
+            max-width: 80%; padding: 10px 14px; border-radius: 12px;
+            word-wrap: break-word; animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.bot {
+            background: #1c2733; color: #fff; align-self: flex-start;
+            border-radius: 12px 12px 12px 4px;
+        }
+        .message.user {
+            background: #5b7cd6; color: #fff; align-self: flex-end;
+            border-radius: 12px 12px 4px 12px;
+        }
+        .message-time {
+            font-size: 11px; color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px; text-align: right;
+        }
+        .cipher-selection { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .cipher-btn {
+            background: #2b3544; border: 1px solid #3d4a5c; color: #fff;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-size: 14px; transition: all 0.2s;
+        }
+        .cipher-btn:hover { background: #3d4a5c; }
+        .cipher-btn.active { background: #5b7cd6; border-color: #5b7cd6; }
+        .input-area { background: #1c2733; padding: 15px; border-radius: 0 0 12px 12px; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
+        .input-field {
+            flex: 1; background: #0e1621; border: 1px solid #2b3544; color: #fff;
+            padding: 12px 16px; border-radius: 20px; font-size: 14px; outline: none;
+        }
+        .input-field:focus { border-color: #5b7cd6; }
+        .input-field::placeholder { color: #6c7883; }
+        .action-buttons { display: flex; gap: 8px; }
+        .action-btn {
+            flex: 1; color: #fff; padding: 10px; border-radius: 8px;
+            cursor: pointer; font-size: 14px; font-weight: 500; border: none;
+        }
+        .action-btn.encrypt { background: #5b7cd6; }
+        .action-btn.encrypt:hover { background: #4a6bc5; }
+        .action-btn.decrypt { background: #f23a5c; }
+        .action-btn.decrypt:hover { background: #d92f4f; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0e1621; }
+        ::-webkit-scrollbar-thumb { background: #2b3544; border-radius: 3px; }
+    </style>
+
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="bot-avatar">🔐</div>
+            <div class="bot-info">
+                <h3>Cipher Bot</h3>
+                <p>Online</p>
+            </div>
+        </div>
+        <div class="chat-messages" id="messages">
+            <div class="message bot">
+                <div>👋 Welcome! I'm your Cipher Bot.</div>
+                <div>Select a cipher, enter your text and key, then choose encrypt or decrypt.</div>
+                <div class="cipher-selection" id="cipherButtons"></div>
+                <div class="message-time" id="welcome-time"></div>
+            </div>
+        </div>
+        <div class="input-area">
+            <div class="input-group">
+                <input type="text" class="input-field" id="textInput" placeholder="Enter your message...">
+            </div>
+            <div class="input-group">
+                <input type="text" class="input-field" id="keyInput" placeholder="Enter encryption key...">
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn encrypt" onclick="processMessage('encrypt')">🔒 Encrypt</button>
+                <button class="action-btn decrypt" onclick="processMessage('decrypt')">🔓 Decrypt</button>
+            </div>
+        </div>
+    </div>
+    <script src="Ciphers.js"></script> 
+    <script>
+        const ciphers = {
+            caesar: { name: 'Caesar', keyHint: 'Enter shift (e.g., 3)' },
+            monoalphabetic: { name: 'Monoalphabetic', keyHint: 'No key needed' },
+            hill: { name: 'Hill', keyHint: 'Uses 2x2 matrix' },
+            vigenere: { name: 'Vigenère', keyHint: 'Enter key word' },
+            playfair: { name: 'Playfair', keyHint: 'Enter keyword' },
+            permutation: { name: 'Permutation', keyHint: 'e.g., 3,1,4,2' },
+            railfence: { name: 'Rail Fence', keyHint: 'Enter depth (e.g., 3)' },
+            des: { name: 'DES', keyHint: '8-character key' },
+            onetimepad: { name: 'One-Time Pad', keyHint: 'Same length as text' },
+            rowtransposition: { name: 'Row Transposition', keyHint: 'Enter key word' },
+            aes: { name: 'AES', keyHint: '16-character key' }
+        };
+        let selectedCipher = 'caesar';
+
+        function initCipherButtons() {
+            const container = document.getElementById('cipherButtons');
+            Object.keys(ciphers).forEach((key, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'cipher-btn' + (index === 0 ? ' active' : '');
+                btn.textContent = ciphers[key].name;
+                btn.dataset.cipher = key;
+                btn.onclick = function() {
+                    document.querySelectorAll('.cipher-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedCipher = key;
+                    document.getElementById('keyInput').placeholder = ciphers[key].keyHint;
+                    addBotMessage(`🔄 Cipher changed to ${this.textContent}`);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        document.getElementById('welcome-time').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        function addMessage(text, isUser = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            messageDiv.innerHTML = `<div>${text}</div><div class="message-time">${time}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addBotMessage(text) { addMessage(text, false); }
+        function addUserMessage(text) { addMessage(text, true); }
+
+        function processMessage(action) {
+            const text = document.getElementById('textInput').value;
+            const key = document.getElementById('keyInput').value;
+
+            if (!text) {
+                addBotMessage('Please enter a message!');
+                return;
+            }
+
+            const actionText = action === 'encrypt' ? '🔒 Encrypting' : '🔓 Decrypting';
+            addUserMessage(`${actionText} with ${ciphers[selectedCipher].name}: "${text}"`);
+
+            let result;
+            try {
+                switch(selectedCipher) {
+                    case 'caesar':
+                        const shift = parseInt(key) || 3;
+                        result = action === 'encrypt' ? CaesarEncrypt(text, shift) : CaesarDecrypt(text, shift);
+                        break;
+                    case 'monoalphabetic':
+                        result = action === 'encrypt' ? monoEncrypt(text) : monoDecrypt(text);
+                        break;
+                    case 'hill':
+                        result = action === 'encrypt' ? hillEncrypt(text) : hillDecrypt(text);
+                        break;
+                    case 'vigenere':
+                        if (!key) throw new Error('Key required');
+                        result = action === 'encrypt' ? vigenereAutoKeyEncrypt(text, key) : vigenereAutoKeyDecrypt(text, key);
+                        break;
+                    case 'playfair':
+                        if (!key) throw new Error('Key required');
+                        result = action === 'encrypt' ? playfairEncrypt(text, key) : playfairDecrypt(text, key);
+                        break;
+                    case 'permutation':
+                        if (!key) throw new Error('Key required');
+                        const perm = key.split(',').map(x => parseInt(x.trim()));
+                        result = action === 'encrypt' ? encryptPermutation(text, perm) : decryptPermutation(text, perm);
+                        break;
+                    case 'railfence':
+                        const depth = parseInt(key) || 3;
+                        result = action === 'encrypt' ? railFenceEncrypt(text, depth) : railFenceDecrypt(text, depth);
+                        break;
+                    case 'des':
+                        if (!key || key.length !== 8) throw new Error('DES key must be 8 characters');
+                        result = action === 'encrypt' ? btoa(DES_Encrypt(text, key)) : DES_Decrypt(atob(text), key);
+                        break;
+                    case 'onetimepad':
+                        if (!key || key.length !== text.length) throw new Error('Key must match message length');
+                        result = action === 'encrypt' ? btoa(otpEncrypt(text, key)) : otpDecrypt(atob(text), key);
+                        break;
+                    case 'rowtransposition':
+                        if (!key) throw new Error('Key required');
+                        result = action === 'encrypt' ? rowTranspositionEncrypt(text, key) : rowTranspositionDecrypt(text, key);
+                        break;
+                    case 'aes':
+                        if (!key || key.length !== 16) throw new Error('AES key must be 16 characters');
+                        result = action === 'encrypt' ? aesEncrypt(text, key) : aesDecrypt(text, key);
+                        break;
+                }
+
+                const icon = action === 'encrypt' ? '🔒' : '🔓';
+                addBotMessage(`${icon} Result:\n\n${result}`);
+            } catch (error) {
+                addBotMessage(`Error: ${error.message || error}`);
+            }
+
+            document.getElementById('textInput').value = '';
+        }
+
+        document.getElementById('textInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') processMessage('encrypt');
+        });
+        document.getElementById('keyInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') processMessage('encrypt');
+        });
+
+        initCipherButtons();
+    </script>
+</body>
+</html>
