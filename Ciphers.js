@@ -367,18 +367,9 @@ function encryptPermutation(text, key) {
     return encrypted.toUpperCase();
 }
 
-function inverseKey(key) {
-    const inv = [];
-    for (let i = 0; i < key.length; i++) {
-        inv[key[i] - 1] = i + 1;
-    }
-    return inv;
-}
-
 
 function decryptPermutation(cipher, key) {
     key = normalizeKey(key);
-    const inv = inverseKey(key);
     const size = key.length;
 
     cipher = cipher.replace(/ /g, "").toLowerCase();
@@ -390,13 +381,13 @@ function decryptPermutation(cipher, key) {
         let resultBlock = Array(size);
 
         for (let j = 0; j < size; j++) {
-            resultBlock[inv[j] - 1] = block[j];
+            resultBlock[key[j] - 1] = block[j];
         }
 
         decrypted += resultBlock.join("");
     }
 
-    return decrypted;
+    return  decrypted.replace(/x+$/i, "");;
 }
 
 
