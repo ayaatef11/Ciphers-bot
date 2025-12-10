@@ -410,10 +410,11 @@ function railFenceEncrypt(text, depth) {
   depth = Number(depth);
   if (depth < 2) throw new Error("Depth must be ≥ 2");
 
-  text = text.replace(/\s/g, "").toLowerCase();
+  text = text.replace(/\s/g, "").toLowerCase();//no new lines or spaces
+  console.log(text)
   const rails = Array.from({ length: depth }, () => "");
 
-  let row = 0, dir = 1;
+  let row = 0, dir = -1;
   for (let ch of text) {
     rails[row] += ch;
     if (row === 0 || row === depth - 1) dir *= -1;
@@ -425,17 +426,17 @@ function railFenceEncrypt(text, depth) {
 function railFenceDecrypt(cipher, depth) {
   depth = Number(depth);
   if (depth < 2) throw new Error("Depth must be ≥ 2");
-
   cipher = cipher.toLowerCase();
   const len = cipher.length;
   const rail = Array.from({ length: depth }, () => Array(len).fill(null));
 
-  let row = 0, dir = 1;
+  let row = 0, dir = -1;
   for (let i = 0; i < len; i++) {
     rail[row][i] = "*";
     if (row === 0 || row === depth - 1) dir *= -1;
     row += dir;
   }
+ 
 
   let idx = 0;
   for (let r = 0; r < depth; r++) {
@@ -445,7 +446,7 @@ function railFenceDecrypt(cipher, depth) {
   }
 
   let out = "";
-  row = 0; dir = 1;
+  row = 0; dir = -1;
   for (let i = 0; i < len; i++) {
     out += rail[row][i];
     if (row === 0 || row === depth - 1) dir *= -1;
