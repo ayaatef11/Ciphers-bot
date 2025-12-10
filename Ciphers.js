@@ -21,19 +21,6 @@ function CaesarDecrypt(text, shift) {
   return CaesarEncrypt(text, -shift);
 }
 
-function doEncrypt() {
-  let text = document.getElementById("text").value;
-  let shift = parseInt(document.getElementById("shift").value);
-  document.getElementById("result").innerText =
-    "Encrypted: " + CaesarEncrypt(text, shift);
-}
-
-function doDecrypt() {
-  let text = document.getElementById("text").value;
-  let shift = parseInt(document.getElementById("shift").value);
-  document.getElementById("result").innerText =
-    "Decrypted: " + CaesarDecrypt(text, shift);
-}
 
 /*******************Monoalphabetic Cipher*******************************/
 const plain = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -44,7 +31,7 @@ function monoEncrypt(text) {
   let result = "";
 
   for (let char of text) {
-    if (plain.includes(char)) {
+    if (plain.includes(char)) {//search in plain
       let index = plain.indexOf(char);
       result += cipher[index];
     } else {
@@ -54,10 +41,9 @@ function monoEncrypt(text) {
   return result;
 }
 
-function monoDecrypt(text) {
+function monoDecrypt(text) {//search in cipher
   text = text.toUpperCase();
   let result = "";
-
   for (let char of text) {
     if (cipher.includes(char)) {
       let index = cipher.indexOf(char);
@@ -69,32 +55,19 @@ function monoDecrypt(text) {
   return result;
 }
 
-function doMonoEncrypt() {
-  let inputText = document.getElementById("inputText").value;
-  document.getElementById("result").innerText =
-    "Encrypted: " + monoEncrypt(inputText);
-}
-
-function doMonoDecrypt() {
-  let inputText = document.getElementById("inputText").value;
-  document.getElementById("result").innerText =
-    "Decrypted: " + monoDecrypt(inputText);
-}
 
 /***********************************Hill Cipher********************************/
-const keyMatrix = [
-  [3, 3],
-  [2, 5],
-];
-
+// Convert character to number (A=0, B=1, ..., Z=25)
 function charToNum(c) {
   return c.toUpperCase().charCodeAt(0) - 65;
 }
 
+// Convert number to character
 function numToChar(n) {
-  return String.fromCharCode((n % 26) + 65);
+  return String.fromCharCode((n % 26 + 26) % 26 + 65);
 }
 
+// Multiply matrix by vector modulo 26
 function multiplyMatrix(matrix, vector) {
   let result = [];
   for (let i = 0; i < matrix.length; i++) {
@@ -102,76 +75,110 @@ function multiplyMatrix(matrix, vector) {
     for (let j = 0; j < vector.length; j++) {
       sum += matrix[i][j] * vector[j];
     }
-    result.push(sum % 26);
+    result.push((sum % 26 + 26) % 26);
   }
   return result;
 }
 
-function modInverseMatrix2x2(matrix) {
-  let a = matrix[0][0],
-    b = matrix[0][1],
-    c = matrix[1][0],
-    d = matrix[1][1];
-  let det = (a * d - b * c) % 26;
-  if (det < 0) det += 26;
+// Compute minor of a matrix
+function minor(matrix, i, j) {
+  return matrix
+    .filter((_, row) => row !== i)
+    .map(row => row.filter((_, col) => col !== j));
+}
 
-  function modInverse(n, m) {
-    n = n % m;
-    for (let x = 1; x < m; x++) {
-      if ((n * x) % m === 1) return x;
+// Determinant of a matrix modulo mod
+function determinant(matrix, mod = 26) {
+  const n = matrix.length;
+  if (n === 1) return matrix[0][0] % mod;
+  if (n === 2) return ((matrix[0][0]*matrix[1][1] - matrix[0][1]*matrix[1][0]) % mod + mod) % mod;
+
+  let det = 0;
+  for (let j = 0; j < n; j++) {
+    det += ((-1) ** j) * matrix[0][j] * determinant(minor(matrix, 0, j), mod);
+    det %= mod;
+  }
+  return (det + mod) % mod;
+}
+
+// Cofactor matrix
+function cofactorMatrix(matrix, mod = 26) {
+  const n = matrix.length;
+  const cof = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      cof[i][j] = ((-1) ** (i + j) * determinant(minor(matrix, i, j), mod)) % mod;
+      cof[i][j] = (cof[i][j] + mod) % mod;
     }
-    throw "No modular inverse!";
   }
-
-  let detInv = modInverse(det, 26);
-
-  return [
-    [(d * detInv) % 26, (-b * detInv + 26) % 26],
-    [(-c * detInv + 26) % 26, (a * detInv) % 26],
-  ];
+  return cof;
 }
 
-function hillEncrypt(text) {
-  text = text.toUpperCase().replace(/[^A-Z]/g, "");
-  let result = "";
-  if (text.length % 2 !== 0) text += "X";
+// Transpose matrix
+function transpose(matrix) {
+  return matrix[0].map((_, col) => matrix.map(row => row[col]));
+}
 
-  for (let i = 0; i < text.length; i += 2) {
-    let vector = [charToNum(text[i]), charToNum(text[i + 1])];
-    let encrypted = multiplyMatrix(keyMatrix, vector);
-    result += numToChar(encrypted[0]) + numToChar(encrypted[1]);
+// Modular inverse of a matrix
+function modInverseMatrix(matrix, mod = 26) {
+  const det = determinant(matrix, mod);
+  let detInv;
+  for (let x = 1; x < mod; x++) {
+    if ((det * x) % mod === 1) {
+      detInv = x;
+      break;
+    }
   }
+  if (detInv == null) throw new Error("No modular inverse exists");
 
+  const adj = transpose(cofactorMatrix(matrix, mod));
+  return adj.map(row => row.map(val => (val * detInv) % mod));
+}
+
+// Convert input string to square matrix
+function inputToMatrix(input) {
+  const numbers = input.split(/\s+/).map(Number);
+  const n = Math.sqrt(numbers.length);
+  if (!Number.isInteger(n)) throw new Error("Number of digits must form a square matrix");
+  const matrix = [];
+  for (let i = 0; i < n; i++) {
+    matrix.push(numbers.slice(i * n, (i + 1) * n));
+  }
+  return matrix;
+}
+
+// Hill Cipher encryption
+function hillEncrypt(text, keyInput) {
+  const keyMatrix = inputToMatrix(keyInput);
+  const n = keyMatrix.length;
+  text = text.toUpperCase().replace(/[^A-Z]/g, "");
+// debugger  
+  while (text.length % n !== 0) text += "X";
+
+  let result = "";
+  for (let i = 0; i < text.length; i += n) {
+    const vector = text.slice(i, i + n).split("").map(charToNum);
+    const encrypted = multiplyMatrix(keyMatrix, vector);
+    result += encrypted.map(numToChar).join("");
+  }
   return result;
 }
 
-function hillDecrypt(text) {
-  text = text.toUpperCase().replace(/[^A-Z]/g, "");
+// Hill Cipher decryption
+function hillDecrypt(cipher, keyInput) {
+  const keyMatrix = inputToMatrix(keyInput);
+  const inverseKey = modInverseMatrix(keyMatrix);
+  const n = inverseKey.length;
+
   let result = "";
-
-  const invKey = modInverseMatrix2x2(keyMatrix);
-
-  for (let i = 0; i < text.length; i += 2) {
-    let vector = [charToNum(text[i]), charToNum(text[i + 1])];
-    let decrypted = multiplyMatrix(invKey, vector);
-    result += numToChar(decrypted[0]) + numToChar(decrypted[1]);
+  for (let i = 0; i < cipher.length; i += n) {
+    const vector = cipher.slice(i, i + n).split("").map(charToNum);
+    const decrypted = multiplyMatrix(inverseKey, vector);
+    result += decrypted.map(numToChar).join("");
   }
-
-  //result = result.substring(0, text.length -1);
-  return result;
+  return result.replace(/X(?=$|.)/g, "");
 }
 
-function doHillEncrypt() {
-  let inputText = document.getElementById("inputText").value;
-  document.getElementById("result").innerText =
-    "Encrypted: " + hillEncrypt(inputText);
-}
-
-function doHillDecrypt() {
-  let inputText = document.getElementById("inputText").value;
-  document.getElementById("result").innerText =
-    "Decrypted: " + hillDecrypt(inputText);
-}
 
 /***********************************Vigenère Cipher********************************/
 function vigenereAutoKeyEncrypt(plainText, key) {
