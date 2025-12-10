@@ -177,11 +177,11 @@ function doHillDecrypt() {
 function vigenereAutoKeyEncrypt(plainText, key) {
   plainText = plainText.toUpperCase().replace(/[^A-Z]/g, "");
   key = key.toUpperCase();
-
-  if (key.length < plainText.length) {
-    key += plainText.slice(0, plainText.length - key.length);
+  let baseKey=key;
+  while (key.length < plainText.length) {
+    key += baseKey;
   }
-
+console.log(key)
   let encrypted = "";
 
   for (let i = 0; i < plainText.length; i++) {
@@ -195,41 +195,30 @@ function vigenereAutoKeyEncrypt(plainText, key) {
 
   return encrypted;
 }
-//decription
+
 function vigenereAutoKeyDecrypt(cipherText, key) {
   cipherText = cipherText.toUpperCase().replace(/[^A-Z]/g, "");
   key = key.toUpperCase();
-
+  let baseKey=key;
+  while (key.length < cipherText.length) {
+    key += baseKey;
+  }
+  console.log(key)
   let decrypted = "";
 
   for (let i = 0; i < cipherText.length; i++) {
     const c = cipherText[i].charCodeAt(0) - 65;
     const k = key[i].charCodeAt(0) - 65;
-
     const p = (c - k + 26) % 26;
-
     const plainChar = String.fromCharCode(p + 65);
     decrypted += plainChar;
-
     key += plainChar;
   }
 
   return decrypted;
 }
 
-function doVigenereEncrypt() {
-  let text = document.getElementById("inputText").value;
-  let shift = document.getElementById("desKey").value;
-  document.getElementById("result").innerText =
-    "Encrypted: " + vigenereAutoKeyEncrypt(text, shift);
-}
 
-function doVigenereDecrypt() {
-  let text = document.getElementById("inputText").value;
-  let shift = document.getElementById("desKey").value;
-  document.getElementById("result").innerText =
-    "Decrypted: " + vigenereAutoKeyDecrypt(text, shift);
-}
 
 /***********************************Playfair Cipher********************************/
 
@@ -239,7 +228,6 @@ const upper = (s) => s.toUpperCase();
 
 function buildPlayfairMatrix(key) {
   key = upper(onlyLetters(key)).replace(/J/g, "I");
-
   const used = new Set();
   const table = [];
 
@@ -249,14 +237,15 @@ function buildPlayfairMatrix(key) {
       table.push(ch);
     }
   }
-
-  for (let ch of "ABCDEFGHIKLMNOPQRSTUVWXYZ") {
+key = key.replace(/J/g, "I");//we treat i and j as the same
+  for (let ch of "ABCDEFGHIKLMNOPQRSTUVWXYZ") { 
     if (!used.has(ch)) table.push(ch);
   }
 
   const mat = Array.from({ length: 5 }, (_, r) =>
     table.slice(r * 5, r * 5 + 5)
   );
+ 
 
   const map = {};
   mat.forEach((row, r) =>
@@ -265,12 +254,11 @@ function buildPlayfairMatrix(key) {
 
   return { mat, map };
 }
-
-function playfairPrepare(text) {
+ 
+function playfairPrepare(text) {//we need it to check if we need to push x or not
   text = upper(onlyLetters(text)).replace(/J/g, "I");
   let digrams = [];
   let i = 0;
-
   while (i < text.length) {
     let a = text[i];
     let b = text[i + 1];
@@ -288,20 +276,22 @@ function playfairPrepare(text) {
 
 function playfairEncrypt(plaintext, key) {
   const { mat, map } = buildPlayfairMatrix(key);
+  
   const digrams = playfairPrepare(plaintext);
   let out = "";
 
-  for (const [x, y] of digrams.map(d => d.split(""))) {
-    const A = map[x], B = map[y];
-
-    if (A.r === B.r) {
+  for (const [x, y] of digrams.map(d => d.split(""))) {//every pair of characters is split into x and y
+    //we not loop over the plain text but in the diagram as it contains the x values
+    const A = map[x], B = map[y];//get the location of x and y 
+    if (A.r === B.r) {//if same row
       out += mat[A.r][(A.c + 1) % 5];
       out += mat[B.r][(B.c + 1) % 5];
-    } else if (A.c === B.c) {
+    } else if (A.c === B.c) {//if same column
       out += mat[(A.r + 1) % 5][A.c];
       out += mat[(B.r + 1) % 5][B.c];
-    } else {
-      out += mat[A.r][B.c] + mat[B.r][A.c];
+    } else {//either then create a rectangle
+      out += mat[A.r][B.c] ;
+      out+= mat[B.r][A.c];
     }
   }
   return out;
@@ -316,22 +306,23 @@ function playfairDecrypt(ciphertext, key) {
 
   let out = "";
 
-  for (let i = 0; i < ciphertext.length; i += 2) {
+  for (let i = 0; i < ciphertext.length; i += 2) {//no need to generate the diagrams
     const A = map[ciphertext[i]];
     const B = map[ciphertext[i + 1]];
 
     if (A.r === B.r) {
-      out += mat[A.r][(A.c + 4) % 5];
+      out += mat[A.r][(A.c + 4) % 5];//take on the right instead
       out += mat[B.r][(B.c + 4) % 5];
     } else if (A.c === B.c) {
-      out += mat[(A.r + 4) % 5][A.c];
+      out += mat[(A.r + 4) % 5][A.c];//take on the up instead
       out += mat[(B.r + 4) % 5][B.c];
     } else {
-      out += mat[A.r][B.c] + mat[B.r][A.c];
+      out += mat[A.r][B.c] ;//same as encryption
+      out+= mat[B.r][A.c];
     }
   }
 
-  return out.replace(/X(?=$|.)/g, ""); // optional cleanup
+  return out.replace(/X(?=$|.)/g, ""); 
 }
 
 
