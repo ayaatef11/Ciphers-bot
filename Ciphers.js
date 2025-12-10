@@ -338,21 +338,17 @@ function playfairDecrypt(ciphertext, key) {
  
 
 /*******************************permutation Cipher****************************************/
-// Convert key to array of numbers
 function normalizeKey(key) {
     if (Array.isArray(key)) return key.map(Number);
     return key.trim().split(/\s+/).map(Number);
 }
 
-// Encryption Function
 
 function encryptPermutation(text, key) {
     key = normalizeKey(key);
     const size = key.length;
-
     text = text.replace(/ /g, "").toLowerCase();
 
-    // Padding with X if needed
     while (text.length % size !== 0) text += "x";
 
     let encrypted = "";
@@ -362,7 +358,7 @@ function encryptPermutation(text, key) {
         let resultBlock = Array(size);
 
         for (let j = 0; j < size; j++) {
-            resultBlock[key[j] - 1] = block[j];
+            resultBlock[j] = block[key[j] - 1];
         }
 
         encrypted += resultBlock.join("");
@@ -371,7 +367,6 @@ function encryptPermutation(text, key) {
     return encrypted.toUpperCase();
 }
 
-// Generate inverse permutation
 function inverseKey(key) {
     const inv = [];
     for (let i = 0; i < key.length; i++) {
