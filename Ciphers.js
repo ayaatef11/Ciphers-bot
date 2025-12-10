@@ -21,7 +21,6 @@ function CaesarDecrypt(text, shift) {
   return CaesarEncrypt(text, -shift);
 }
 
-
 /*******************Monoalphabetic Cipher*******************************/
 const plain = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const cipher = "QWERTYUIOPASDFGHJKLZXCVBNM";
@@ -31,7 +30,8 @@ function monoEncrypt(text) {
   let result = "";
 
   for (let char of text) {
-    if (plain.includes(char)) {//search in plain
+    if (plain.includes(char)) {
+      //search in plain
       let index = plain.indexOf(char);
       result += cipher[index];
     } else {
@@ -41,7 +41,8 @@ function monoEncrypt(text) {
   return result;
 }
 
-function monoDecrypt(text) {//search in cipher
+function monoDecrypt(text) {
+  //search in cipher
   text = text.toUpperCase();
   let result = "";
   for (let char of text) {
@@ -55,7 +56,6 @@ function monoDecrypt(text) {//search in cipher
   return result;
 }
 
-
 /***********************************Hill Cipher********************************/
 // Convert character to number (A=0, B=1, ..., Z=25)
 function charToNum(c) {
@@ -64,7 +64,7 @@ function charToNum(c) {
 
 // Convert number to character
 function numToChar(n) {
-  return String.fromCharCode((n % 26 + 26) % 26 + 65);
+  return String.fromCharCode((((n % 26) + 26) % 26) + 65);
 }
 
 // Multiply matrix by vector modulo 26
@@ -75,7 +75,7 @@ function multiplyMatrix(matrix, vector) {
     for (let j = 0; j < vector.length; j++) {
       sum += matrix[i][j] * vector[j];
     }
-    result.push((sum % 26 + 26) % 26);
+    result.push(((sum % 26) + 26) % 26);
   }
   return result;
 }
@@ -84,18 +84,23 @@ function multiplyMatrix(matrix, vector) {
 function minor(matrix, i, j) {
   return matrix
     .filter((_, row) => row !== i)
-    .map(row => row.filter((_, col) => col !== j));
+    .map((row) => row.filter((_, col) => col !== j));
 }
 
 // Determinant of a matrix modulo mod
 function determinant(matrix, mod = 26) {
   const n = matrix.length;
   if (n === 1) return matrix[0][0] % mod;
-  if (n === 2) return ((matrix[0][0]*matrix[1][1] - matrix[0][1]*matrix[1][0]) % mod + mod) % mod;
+  if (n === 2)
+    return (
+      (((matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) % mod) +
+        mod) %
+      mod
+    );
 
   let det = 0;
   for (let j = 0; j < n; j++) {
-    det += ((-1) ** j) * matrix[0][j] * determinant(minor(matrix, 0, j), mod);
+    det += (-1) ** j * matrix[0][j] * determinant(minor(matrix, 0, j), mod);
     det %= mod;
   }
   return (det + mod) % mod;
@@ -107,7 +112,8 @@ function cofactorMatrix(matrix, mod = 26) {
   const cof = Array.from({ length: n }, () => Array(n).fill(0));
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      cof[i][j] = ((-1) ** (i + j) * determinant(minor(matrix, i, j), mod)) % mod;
+      cof[i][j] =
+        ((-1) ** (i + j) * determinant(minor(matrix, i, j), mod)) % mod;
       cof[i][j] = (cof[i][j] + mod) % mod;
     }
   }
@@ -116,7 +122,7 @@ function cofactorMatrix(matrix, mod = 26) {
 
 // Transpose matrix
 function transpose(matrix) {
-  return matrix[0].map((_, col) => matrix.map(row => row[col]));
+  return matrix[0].map((_, col) => matrix.map((row) => row[col]));
 }
 
 // Modular inverse of a matrix
@@ -132,14 +138,15 @@ function modInverseMatrix(matrix, mod = 26) {
   if (detInv == null) throw new Error("No modular inverse exists");
 
   const adj = transpose(cofactorMatrix(matrix, mod));
-  return adj.map(row => row.map(val => (val * detInv) % mod));
+  return adj.map((row) => row.map((val) => (val * detInv) % mod));
 }
 
 // Convert input string to square matrix
 function inputToMatrix(input) {
   const numbers = input.split(/\s+/).map(Number);
   const n = Math.sqrt(numbers.length);
-  if (!Number.isInteger(n)) throw new Error("Number of digits must form a square matrix");
+  if (!Number.isInteger(n))
+    throw new Error("Number of digits must form a square matrix");
   const matrix = [];
   for (let i = 0; i < n; i++) {
     matrix.push(numbers.slice(i * n, (i + 1) * n));
@@ -152,12 +159,15 @@ function hillEncrypt(text, keyInput) {
   const keyMatrix = inputToMatrix(keyInput);
   const n = keyMatrix.length;
   text = text.toUpperCase().replace(/[^A-Z]/g, "");
-// debugger  
+  // debugger
   while (text.length % n !== 0) text += "X";
 
   let result = "";
   for (let i = 0; i < text.length; i += n) {
-    const vector = text.slice(i, i + n).split("").map(charToNum);
+    const vector = text
+      .slice(i, i + n)
+      .split("")
+      .map(charToNum);
     const encrypted = multiplyMatrix(keyMatrix, vector);
     result += encrypted.map(numToChar).join("");
   }
@@ -172,23 +182,25 @@ function hillDecrypt(cipher, keyInput) {
 
   let result = "";
   for (let i = 0; i < cipher.length; i += n) {
-    const vector = cipher.slice(i, i + n).split("").map(charToNum);
+    const vector = cipher
+      .slice(i, i + n)
+      .split("")
+      .map(charToNum);
     const decrypted = multiplyMatrix(inverseKey, vector);
     result += decrypted.map(numToChar).join("");
   }
   return result.replace(/X(?=$|.)/g, "");
 }
 
-
 /***********************************Vigenère Cipher********************************/
 function vigenereAutoKeyEncrypt(plainText, key) {
   plainText = plainText.toUpperCase().replace(/[^A-Z]/g, "");
   key = key.toUpperCase();
-  let baseKey=key;
+  let baseKey = key;
   while (key.length < plainText.length) {
     key += baseKey;
   }
-console.log(key)
+  console.log(key);
   let encrypted = "";
 
   for (let i = 0; i < plainText.length; i++) {
@@ -206,11 +218,11 @@ console.log(key)
 function vigenereAutoKeyDecrypt(cipherText, key) {
   cipherText = cipherText.toUpperCase().replace(/[^A-Z]/g, "");
   key = key.toUpperCase();
-  let baseKey=key;
+  let baseKey = key;
   while (key.length < cipherText.length) {
     key += baseKey;
   }
-  console.log(key)
+  console.log(key);
   let decrypted = "";
 
   for (let i = 0; i < cipherText.length; i++) {
@@ -225,10 +237,7 @@ function vigenereAutoKeyDecrypt(cipherText, key) {
   return decrypted;
 }
 
-
-
 /***********************************Playfair Cipher********************************/
-
 
 const onlyLetters = (s) => s.replace(/[^A-Za-z]/g, "");
 const upper = (s) => s.toUpperCase();
@@ -244,25 +253,23 @@ function buildPlayfairMatrix(key) {
       table.push(ch);
     }
   }
-key = key.replace(/J/g, "I");//we treat i and j as the same
-  for (let ch of "ABCDEFGHIKLMNOPQRSTUVWXYZ") { 
+  key = key.replace(/J/g, "I"); //we treat i and j as the same
+  for (let ch of "ABCDEFGHIKLMNOPQRSTUVWXYZ") {
     if (!used.has(ch)) table.push(ch);
   }
 
   const mat = Array.from({ length: 5 }, (_, r) =>
     table.slice(r * 5, r * 5 + 5)
   );
- 
 
   const map = {};
-  mat.forEach((row, r) =>
-    row.forEach((ch, c) => (map[ch] = { r, c }))
-  );
+  mat.forEach((row, r) => row.forEach((ch, c) => (map[ch] = { r, c })));
 
   return { mat, map };
 }
- 
-function playfairPrepare(text) {//we need it to check if we need to push x or not
+
+function playfairPrepare(text) {
+  //we need it to check if we need to push x or not
   text = upper(onlyLetters(text)).replace(/J/g, "I");
   let digrams = [];
   let i = 0;
@@ -283,22 +290,27 @@ function playfairPrepare(text) {//we need it to check if we need to push x or no
 
 function playfairEncrypt(plaintext, key) {
   const { mat, map } = buildPlayfairMatrix(key);
-  
+
   const digrams = playfairPrepare(plaintext);
   let out = "";
 
-  for (const [x, y] of digrams.map(d => d.split(""))) {//every pair of characters is split into x and y
+  for (const [x, y] of digrams.map((d) => d.split(""))) {
+    //every pair of characters is split into x and y
     //we not loop over the plain text but in the diagram as it contains the x values
-    const A = map[x], B = map[y];//get the location of x and y 
-    if (A.r === B.r) {//if same row
+    const A = map[x],
+      B = map[y]; //get the location of x and y
+    if (A.r === B.r) {
+      //if same row
       out += mat[A.r][(A.c + 1) % 5];
       out += mat[B.r][(B.c + 1) % 5];
-    } else if (A.c === B.c) {//if same column
+    } else if (A.c === B.c) {
+      //if same column
       out += mat[(A.r + 1) % 5][A.c];
       out += mat[(B.r + 1) % 5][B.c];
-    } else {//either then create a rectangle
-      out += mat[A.r][B.c] ;
-      out+= mat[B.r][A.c];
+    } else {
+      //either then create a rectangle
+      out += mat[A.r][B.c];
+      out += mat[B.r][A.c];
     }
   }
   return out;
@@ -313,92 +325,88 @@ function playfairDecrypt(ciphertext, key) {
 
   let out = "";
 
-  for (let i = 0; i < ciphertext.length; i += 2) {//no need to generate the diagrams
+  for (let i = 0; i < ciphertext.length; i += 2) {
+    //no need to generate the diagrams
     const A = map[ciphertext[i]];
     const B = map[ciphertext[i + 1]];
 
     if (A.r === B.r) {
-      out += mat[A.r][(A.c + 4) % 5];//take on the right instead
+      out += mat[A.r][(A.c + 4) % 5]; //take on the right instead
       out += mat[B.r][(B.c + 4) % 5];
     } else if (A.c === B.c) {
-      out += mat[(A.r + 4) % 5][A.c];//take on the up instead
+      out += mat[(A.r + 4) % 5][A.c]; //take on the up instead
       out += mat[(B.r + 4) % 5][B.c];
     } else {
-      out += mat[A.r][B.c] ;//same as encryption
-      out+= mat[B.r][A.c];
+      out += mat[A.r][B.c]; //same as encryption
+      out += mat[B.r][A.c];
     }
   }
 
-  return out.replace(/X(?=$|.)/g, ""); 
+  return out.replace(/X(?=$|.)/g, "");
 }
-
-
- 
 
 /*******************************permutation Cipher****************************************/
 function normalizeKey(key) {
-    if (Array.isArray(key)) return key.map(Number);
-    return key.trim().split(/\s+/).map(Number);
+  if (Array.isArray(key)) return key.map(Number);
+  return key.trim().split(/\s+/).map(Number);
 }
-
 
 function encryptPermutation(text, key) {
-    key = normalizeKey(key);
-    const size = key.length;
-    text = text.replace(/ /g, "").toLowerCase();
+  key = normalizeKey(key);
+  const size = key.length;
+  text = text.replace(/ /g, "").toLowerCase();
 
-    while (text.length % size !== 0) text += "x";
+  while (text.length % size !== 0) text += "x";
 
-    let encrypted = "";
+  let encrypted = "";
 
-    for (let i = 0; i < text.length; i += size) {
-        const block = text.slice(i, i + size);
-        let resultBlock = Array(size);
+  for (let i = 0; i < text.length; i += size) {
+    const block = text.slice(i, i + size);
+    let resultBlock = Array(size);
 
-        for (let j = 0; j < size; j++) {
-            resultBlock[j] = block[key[j] - 1];
-        }
-
-        encrypted += resultBlock.join("");
+    for (let j = 0; j < size; j++) {
+      resultBlock[j] = block[key[j] - 1];
     }
 
-    return encrypted.toUpperCase();
-}
+    encrypted += resultBlock.join("");
+  }
 
+  return encrypted.toUpperCase();
+}
 
 function decryptPermutation(cipher, key) {
-    key = normalizeKey(key);
-    const size = key.length;
+  key = normalizeKey(key);
+  const size = key.length;
 
-    cipher = cipher.replace(/ /g, "").toLowerCase();
+  cipher = cipher.replace(/ /g, "").toLowerCase();
 
-    let decrypted = "";
+  let decrypted = "";
 
-    for (let i = 0; i < cipher.length; i += size) {
-        const block = cipher.slice(i, i + size);
-        let resultBlock = Array(size);
+  for (let i = 0; i < cipher.length; i += size) {
+    const block = cipher.slice(i, i + size);
+    let resultBlock = Array(size);
 
-        for (let j = 0; j < size; j++) {
-            resultBlock[key[j] - 1] = block[j];
-        }
-
-        decrypted += resultBlock.join("");
+    for (let j = 0; j < size; j++) {
+      resultBlock[key[j] - 1] = block[j];
     }
 
-    return  decrypted.replace(/x+$/i, "");;
-}
+    decrypted += resultBlock.join("");
+  }
 
+  return decrypted.replace(/x+$/i, "");
+}
 
 /***********************************rail Fence Cipher********************************/
 function railFenceEncrypt(text, depth) {
   depth = Number(depth);
   if (depth < 2) throw new Error("Depth must be ≥ 2");
 
-  text = text.replace(/\s/g, "").toLowerCase();//no new lines or spaces
-  console.log(text)
+  text = text.replace(/\s/g, "").toLowerCase(); //no new lines or spaces
+  console.log(text);
   const rails = Array.from({ length: depth }, () => "");
 
-  let row = 0, dir = -1;
+  let row = 0,
+    dir = -1;
   for (let ch of text) {
     rails[row] += ch;
     if (row === 0 || row === depth - 1) dir *= -1;
@@ -414,13 +422,13 @@ function railFenceDecrypt(cipher, depth) {
   const len = cipher.length;
   const rail = Array.from({ length: depth }, () => Array(len).fill(null));
 
-  let row = 0, dir = -1;
+  let row = 0,
+    dir = -1;
   for (let i = 0; i < len; i++) {
     rail[row][i] = "*";
     if (row === 0 || row === depth - 1) dir *= -1;
     row += dir;
   }
- 
 
   let idx = 0;
   for (let r = 0; r < depth; r++) {
@@ -430,7 +438,8 @@ function railFenceDecrypt(cipher, depth) {
   }
 
   let out = "";
-  row = 0; dir = -1;
+  row = 0;
+  dir = -1;
   for (let i = 0; i < len; i++) {
     out += rail[row][i];
     if (row === 0 || row === depth - 1) dir *= -1;
@@ -438,7 +447,6 @@ function railFenceDecrypt(cipher, depth) {
   }
   return out;
 }
-
 
 /***********************************Des Cipher********************************/
 const IP = [
@@ -518,6 +526,7 @@ const S_BOXES = [
 ];
 
 const PC1 = [
+  //56 numbers here as 64-8 which are the parity bits
   57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18, 10, 2, 59, 51, 43, 35,
   27, 19, 11, 3, 60, 52, 44, 36, 63, 55, 47, 39, 31, 23, 15, 7, 62, 54, 46, 38,
   30, 22, 14, 6, 61, 53, 45, 37, 29, 21, 13, 5, 28, 20, 12, 4,
@@ -532,6 +541,7 @@ const PC2 = [
 const SHIFTS = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1];
 
 function permute(input, table) {
+  //rearannge bits based on the tabel which in our case is pc1
   return table.map((pos) => input[pos - 1]).join("");
 }
 
@@ -560,10 +570,10 @@ function sBoxSub(input48) {
 function strToBitString(str) {
   return str
     .split("")
-    .map((c) => c.charCodeAt(0).toString(2).padStart(8, "0"))
+    .map((c) => c.charCodeAt(0).toString(2).padStart(8, "0")) //toString(2) convert it to binary  , then pad zeros so the length is 8
     .join("");
 }
-
+//each character should be 8 bits
 function bitStringToStr(bits) {
   let out = "";
   for (let i = 0; i < bits.length; i += 8) {
@@ -575,15 +585,17 @@ function bitStringToStr(bits) {
 function generateRoundKeys(key8chars) {
   let keyBits = strToBitString(key8chars);
   let perm56 = permute(keyBits, PC1);
+  //split  the permuted string into two parts c, d
   let C = perm56.slice(0, 28);
   let D = perm56.slice(28, 56);
   let roundKeys = [];
   for (let i = 0; i < 16; i++) {
+    //16 rounds
     C = leftRotate(C, SHIFTS[i]);
     D = leftRotate(D, SHIFTS[i]);
     let combined = C + D;
     let roundKey48 = permute(combined, PC2);
-    roundKeys.push(roundKey48);
+    roundKeys.push(roundKey48); //add round key
   }
   return roundKeys;
 }
@@ -617,6 +629,7 @@ function processBlock(block8Bytes, roundKeys, encrypt = true) {
 }
 
 function pkcs5Pad(dataStr) {
+  //add padding with hexadecimal characters
   let padLen = 8 - (dataStr.length % 8);
   if (padLen === 0) padLen = 8;
   let padChar = String.fromCharCode(padLen);
@@ -631,6 +644,7 @@ function pkcs5Unpad(dataStr) {
 }
 
 function DES_Process(dataStr, key8chars, encrypt = true) {
+  debugger;
   if (key8chars.length !== 8) throw new Error("Key must be 8 characters");
   let roundKeys = generateRoundKeys(key8chars);
   let input = dataStr;
@@ -662,38 +676,6 @@ function DES_Decrypt(ciphertext, key) {
   return DES_Process(ciphertext, key, false);
 }
 
-function doDESEncrypt() {
-  try {
-    let text = document.getElementById("inputText").value;
-    let key = document.getElementById("desKey").value;
-    if (key.length !== 8) {
-      alert("Key must be exactly 8 characters");
-      return;
-    }
-    let encrypted = DES_Encrypt(text, key);
-    let b64 = btoa(encrypted);
-    document.getElementById("result").innerText = b64;
-  } catch (e) {
-    alert("Encryption error: " + e.message);
-  }
-}
-
-function doDESDecrypt() {
-  try {
-    let b64 = document.getElementById("inputText").value;
-    let key = document.getElementById("desKey").value;
-    if (key.length !== 8) {
-      alert("Key must be exactly 8 characters");
-      return;
-    }
-    let ciphertext = atob(b64);
-    let decrypted = DES_Decrypt(ciphertext, key);
-    document.getElementById("result").innerText = decrypted;
-  } catch (e) {
-    alert("Decryption error: " + e.message);
-  }
-}
-
 /***********************************One-Time Pad Cipher********************************/
 
 function otpEncrypt(text, key) {
@@ -709,28 +691,9 @@ function otpEncrypt(text, key) {
 }
 
 function otpDecrypt(text, key) {
-  return otpEncrypt(text, key); // same operation
+  return otpEncrypt(text, key); // same operation as it is xor operation
 }
 
-function doOneTimePadEncrypt() {
-  let text = document.getElementById("inputText").value;
-  let key = document.getElementById("desKey").value;
-  if (key.length !== text.length) {
-    alert("Key must be same length as message!");
-    return;
-  }
-  let encrypted = otpEncrypt(text, key);
-  let b64 = btoa(encrypted);
-  document.getElementById("result").innerText = "Encrypted: " + b64;
-}
-
-function doOneTimePadDecrypt() {
-  let b64 = document.getElementById("inputText").value;
-  let key = document.getElementById("desKey").value;
-  let ciphertext = atob(b64);
-  let decrypted = otpDecrypt(ciphertext, key);
-  document.getElementById("result").innerText = "Decrypted: " + decrypted;
-}
 
 /***********************************Row Transposition  Cipher********************************/
 
