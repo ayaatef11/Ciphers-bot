@@ -116,7 +116,7 @@
     <script>
         const ciphers = {
             caesar: { name: 'Caesar', keyHint: 'Enter shift (e.g., 3)' },
-            monoalphabetic: { name: 'Monoalphabetic', keyHint: 'No key needed' },
+            monoalphabetic: { name: 'Monoalphabetic', keyHint: 'Enter Key word' },
             hill: { name: 'Hill', keyHint: 'Enter valid nxn matrix' },
             vigenere: { name: 'Vigenère', keyHint: 'Enter key word' },
             playfair: { name: 'Playfair', keyHint: 'Enter keyword' },
@@ -182,7 +182,8 @@
                         result = action === 'encrypt' ? CaesarEncrypt(text, shift) : CaesarDecrypt(text, shift);
                         break;
                     case 'monoalphabetic':
-                        result = action === 'encrypt' ? monoEncrypt(text) : monoDecrypt(text);
+                        if (!key) throw new Error('Key required');
+                        result = action === 'encrypt' ? monoEncrypt(text,key) : monoDecrypt(text,key);
                         break;
                     case 'hill':
                         if (!key) throw new Error('Key required');

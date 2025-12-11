@@ -22,39 +22,65 @@ function CaesarDecrypt(text, shift) {
 }
 
 /*******************Monoalphabetic Cipher*******************************/
-const plain = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const cipher = "QWERTYUIOPASDFGHJKLZXCVBNM";
+// const plain = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+// const cipher = "QWERTYUIOPASDFGHJKLZXCVBNM";
 
-function monoEncrypt(text) {
-  text = text.toUpperCase();
-  let result = "";
+const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
 
-  for (let char of text) {
-    if (plain.includes(char)) {
-      //search in plain
-      let index = plain.indexOf(char);
-      result += cipher[index];
-    } else {
-      result += char;
+function buildKeyFromWord(word) {
+  word = word.toLowerCase();
+  let key = "";
+  const seen = new Set();
+  for (const ch of word) {
+    if (ALPHABET.includes(ch) && !seen.has(ch)) {
+      seen.add(ch);
+      key += ch;
     }
   }
-  return result;
+  for (const ch of ALPHABET) {
+    if (!seen.has(ch)) key += ch;
+  }
+  return key; 
 }
 
-function monoDecrypt(text) {
-  //search in cipher
-  text = text.toUpperCase();
-  let result = "";
-  for (let char of text) {
-    if (cipher.includes(char)) {
-      let index = cipher.indexOf(char);
-      result += plain[index];
+function buildMappings(keyword) {
+  const key = buildKeyFromWord(keyword);
+  const enc = {}; // plain → cipher
+  const dec = {}; // cipher → plain
+
+  for (let i = 0; i < 26; i++) {
+    const p = ALPHABET[i]; 
+    const c = key[i];     
+    enc[p] = c;
+    dec[c] = p;
+  }
+  return { enc, dec, key };
+}
+
+function transform(text, map) {
+  let out = "";
+  for (const ch of text) {
+    const lower = ch.toLowerCase();
+    if (ALPHABET.includes(lower)) {
+      const newCh = map[lower];
+      out += (ch === ch.toUpperCase()) ? newCh.toUpperCase() : newCh;
     } else {
-      result += char;
+      out += ch; 
     }
   }
-  return result;
+  return out;
 }
+
+function monoEncrypt(plaintext, keyword) {
+  const { enc } = buildMappings(keyword);
+  return transform(plaintext, enc);
+}
+
+function monoDecrypt(ciphertext, keyword) {
+  const { dec } = buildMappings(keyword);
+  return transform(ciphertext, dec);
+}
+
 
 /***********************************Hill Cipher********************************/
 // Convert character to number (A=0, B=1, ..., Z=25)
@@ -795,7 +821,7 @@ const sBox = [
 
 // AES parameters
 const Nb = 4; // block size in 32-bit words
-const Nk = 4; // key length in 32-bit words (AES-128)
+const Nk = 4; // key length in 32-bit words 
 const Nr = 10; // number of rounds
 
 // Helper functions
@@ -809,14 +835,15 @@ function subBytes(state) {
 }
 
 function shiftRows(state) {
-  for (let r = 1; r < 4; r++) {
+  for (let r=1;r<4;r++) {
     state[r] = state[r].slice(r).concat(state[r].slice(0, r));
   }
   return state;
 }
 
 function xtime(a) {
-  return ((a << 1) ^ (((a >> 7) & 1) * 0x1b)) & 0xff;
+  //0x1b is 27 in decimal
+  return ((a << 1) ^ (((a >> 7) & 1) * 0x1b)) & 0xff;//a<<1 meand shift to left or a*2
 }
 
 function mixColumns(state) {
@@ -844,7 +871,6 @@ function addRoundKey(state, w, round) {
   return state;
 }
 
-// Key expansion
 const Rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36];
 function subWord(word) {
   return word.map((b) => sBox[b]);
