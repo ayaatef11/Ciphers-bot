@@ -697,67 +697,76 @@ function otpDecrypt(text, key) {
 
 /***********************************Row Transposition  Cipher********************************/
 
+function getKeyOrder(key) {
+  debugger
+   if (Array.isArray(key)){
+return key.map(x => Number(x) - 1);
+    }
+  key = key.toUpperCase();
+  let chars = key.split('');
+  let sorted = [...chars].sort((a, b) => a.charCodeAt(0) - b.charCodeAt(0));
+  return chars.map(c => sorted.indexOf(c));
+}
+
 function rowTranspositionEncrypt(plaintext, key) {
+  plaintext = plaintext.toUpperCase().replace(/[^A-Z]/g, "");
   let n = key.length;
   let rows = Math.ceil(plaintext.length / n);
-  let padded = plaintext.padEnd(rows * n, "_");
+  let padded = plaintext.padEnd(rows * n, "X");
   let matrix = [];
-
   for (let i = 0; i < rows; i++) {
-    matrix.push(padded.slice(i * n, (i + 1) * n).split(""));
+    matrix.push(padded.slice(i * n, (i + 1)* n).split(""));
   }
+  let keyOrder = getKeyOrder(key)
+console.log("key is: ",keyOrder)
 
-  let keyOrder = key
-    .split("")
-    .map((k, i) => [k, i])
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map((x) => x[1]);
+console.log(matrix)
 
+let newMatrix = Array(keyOrder.length).fill(0).map(() => []);
+
+for (let i = 0; i < keyOrder.length; i++) {
+  let colIndex = keyOrder.indexOf(i);  
+  for (let j = 0; j < matrix.length; j++) {
+    newMatrix[i][j] = matrix[j][colIndex];
+  }
+}
+console.log(newMatrix)
   let ciphertext = "";
-  for (let col of keyOrder) {
-    for (let row of matrix) {
-      ciphertext += row[col];
+  for (let row of newMatrix) {
+      ciphertext += row.join("");
     }
-  }
+  
   return ciphertext;
 }
 
 function rowTranspositionDecrypt(ciphertext, key) {
   let n = key.length;
   let rows = Math.ceil(ciphertext.length / n);
-  let keyOrder = key
-    .split("")
-    .map((k, i) => [k, i])
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map((x) => x[1]);
+  let keyOrder = getKeyOrder(key);
 
+  // matrix empty
   let matrix = Array.from({ length: rows }, () => Array(n));
+// console.log(keyOrder)
+// console.log(inverseKeyOrder)
+// console.log(matrix)
   let index = 0;
-  for (let col of keyOrder) {
+    // for (let col = keyOrder[0]; col < keyOrder.length; col++) {
+    //   for (let row = 0; row < rows; row++) {
+    //   matrix[row][col] = ciphertext[index++];
+    // }
+    //   }     
+    for (let k = 0; k < n; k++) {
+    // نبحث عن العمود اللي رقمه k في keyOrder
+    let col = keyOrder.indexOf(k);
     for (let row = 0; row < rows; row++) {
       matrix[row][col] = ciphertext[index++];
     }
-  }
+  }          
 
-  return matrix
-    .map((r) => r.join(""))
-    .join("")
-    .replace(/_+$/, "");
+  return matrix.map(r => r.join("")).join("");
 }
+ 
 
-function doRowTranspositionEncrypt() {
-  let text = document.getElementById("inputText").value;
-  let key = document.getElementById("desKey").value;
-  let encrypted = rowTranspositionEncrypt(text, key);
-  document.getElementById("result").innerText = "Encrypted: " + encrypted;
-}
-
-function doRowTranspositionDecrypt() {
-  let text = document.getElementById("inputText").value;
-  let key = document.getElementById("desKey").value;
-  let decrypted = rowTranspositionDecrypt(text, key);
-  document.getElementById("result").innerText = "Decrypted: " + decrypted;
-}
 
 /***********************************AES Cipher************************************************/
 // S-box
@@ -1042,33 +1051,3 @@ function aesDecrypt(cipherTextBase64, keyText) {
   return String.fromCharCode(...output);
 }
 
-function doAESEncrypt() {
-  try {
-    let text = document.getElementById("inputText").value;
-    let key = document.getElementById("desKey").value;
-    if (key.length !== 16) {
-      alert("AES Key must be 16 chars!");
-      return;
-    }
-    let encrypted = aesEncrypt(text, key); // Your existing AES encrypt function
-    let b64 = btoa(String.fromCharCode(...encrypted));
-    document.getElementById("result").innerText = b64;
-  } catch (e) {
-    alert("AES Encryption Error: " + e.message);
-  }
-}
-
-function doAESDecrypt() {
-  try {
-    let b64 = document.getElementById("inputText").value;
-    let key = document.getElementById("desKey").value;
-    if (key.length !== 16) {
-      alert("AES Key must be 16 chars!");
-      return;
-    }
-    let decrypted = aesDecrypt(b64, keyExpansion(key)); // keyExpansion generates round keys
-    document.getElementById("result").innerText = decrypted;
-  } catch (e) {
-    alert("AES Decryption Error: " + e.message);
-  }
-}

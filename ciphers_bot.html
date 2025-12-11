@@ -215,7 +215,10 @@
                         break;
                     case 'rowtransposition':
                         if (!key) throw new Error('Key required');
-                        result = action === 'encrypt' ? rowTranspositionEncrypt(text, key) : rowTranspositionDecrypt(text, key);
+                        debugger
+                        const keyT = key.split(' ').map(x => parseInt(x.trim()));
+                        const validKey = keyT.every(n => !isNaN(n)) ? keyT : key;
+                        result = action === 'encrypt' ? rowTranspositionEncrypt(text, validKey) : rowTranspositionDecrypt(text, validKey);
                         break;
                     case 'aes':
                         if (!key || key.length !== 16) throw new Error('AES key must be 16 characters');
